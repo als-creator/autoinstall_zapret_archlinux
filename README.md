@@ -30,7 +30,7 @@
 sudo nano /opt/zapret/config
 
 > **Важная заметка:** В конфигурации уже установлены параметры для NFQWS (`NFQWS_ENABLE=1`), которые являются наиболее эффективными для большинства провайдеров.  
-> Не гарантируется, что эти настройки будут работать у вас, так как методы провайдеров могут отличаться.  
+> Не гарантируется, что эти настройки будут работать у вас, так как методы работы провайдеров могут отличаться.  
 > Изучите документацию zapret для получения информации о настройке под вашего провайдера.
 
 ### 2. Список доменов: `/opt/zapret/ipset/zapret-hosts-user.txt`
@@ -65,6 +65,6 @@ sudo systemctl stop zapret
 
 ## Автоматическая установка
 ```bash
-sh -c "$(curl -fsSL https://github.com/als-creator/autoinstall_zapret_archlinux/blob/main/autoinstall_zapret_archlinux.sh)"
+curl -fsSL https://raw.githubusercontent.com/als-creator/autoinstall_zapret_archlinux/main/autoinstall_zapret_archlinux.sh | sh
 
 ```
