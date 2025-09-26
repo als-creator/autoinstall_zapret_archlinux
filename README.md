@@ -60,3 +60,11 @@ sudo systemctl status zapret
 - Остановка сервиса:
 
 sudo systemctl stop zapret
+
+---
+
+## Автоматическая установка
+```bash
+sh -c "$(curl -fsSL https://github.com/als-creator/autoinstall_zapret_archlinux/blob/main/autoinstall_zapret_archlinux.sh)"
+
+```
