@@ -55,25 +55,24 @@ TPWS_OPT="
 --filter-tcp=80 --methodeol <HOSTLIST> --new
 --filter-tcp=443 --split-tls=sni --disorder <HOSTLIST>
 "
-
 NFQWS_ENABLE=1
-NFQWS_PORTS_TCP=80,443
+NFQWS_PORTS_TCP=80,443,50000-50099
 NFQWS_PORTS_UDP=443,50000-65535
 NFQWS_TCP_PKT_OUT=$((6+$AUTOHOSTLIST_RETRANS_THRESHOLD))
 NFQWS_TCP_PKT_IN=3
 NFQWS_UDP_PKT_OUT=$((6+$AUTOHOSTLIST_RETRANS_THRESHOLD))
 NFQWS_UDP_PKT_IN=0
+
 NFQWS_OPT="
---filter-tcp=80 --hostlist=/opt/zapret/ipset/zapret-hosts-user.txt --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new
---filter-tcp=443 --hostlist=/opt/zapret/ipset/zapret-hosts-user.txt --dpi-desync=fake,split2 --dpi-desync-repeats=11 --dpi-desync-fooling=md5sig --dpi-desync-fake-tls=/opt/zapret/files/fake/tls_clienthello_www_google_com.bin --new
---filter-tcp=80,443 --hostlist=/opt/zapret/ipset/zapret-hosts-user.txt --dpi-desync=fake,disorder2 --dpi-desync-repeats=6 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new
---filter-udp=50000-50099 --hostlist=/opt/zapret/ipset/zapret-hosts-user.txt --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-any-protocol --dpi-desync-cutoff=n4 --new
---filter-udp=443 --hostlist=/opt/zapret/ipset/zapret-hosts-user.txt --dpi-desync=fake --dpi-desync-repeats=11 --dpi-desync-fake-quic=/opt/zapret/files/fake/quic_initial_www_google_com.bin
-"
-MODE_FILTER=hostlist
-FLOWOFFLOAD=auto
+--filter-tcp=80,443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1 --dpi-desync-ttl=4 --dpi-desync-fake-tls=0x00000000 --dpi-desync-fake-tls=! --dpi-desync-fake-tls-mod=rnd,rndsni --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt" --new ^
+--filter-udp=80,443  --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1 --dpi-desync-ttl=4 --dpi-desync-fake-tls=0x00000000 --dpi-desync-fake-tls=! --dpi-desync-fake-tls-mod=rnd,rndsni,dupsid --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt" --new ^
+--filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt""
+
+MODE_FILTER=autohostlist
+FLOWOFFLOAD=donttouch
 INIT_APPLY_FW=1
 DISABLE_IPV6=1
+
 ' \
   | sudo tee /opt/zapret/config > /dev/null
 
