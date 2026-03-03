@@ -2,37 +2,39 @@
 set -e
 
 # Запрещаем запуск от root
-[ "$EUID" -eq 0 ] && { echo "Не запускайте скрипт от root." >&2; exit 1; }
-
-# Проверка наличия sudo
-if sudo -l &>/dev/null; then
-  echo "Есть права sudo"
-else
-  echo "Нет прав sudo"
+if [ "$EUID" -eq 0 ]; then
+  echo "Не запускайте скрипт от root." >&2
   exit 1
 fi
 
-# Установка yay из AUR вручную если не найден
-command -v yay &>/dev/null \
-  || {
-    echo "yay не найден — собираю из AUR..."
-    cd /tmp
-    [ -d yay ] && rm -rf yay
-    git clone https://aur.archlinux.org/yay.git
-    cd yay
-    makepkg -si --noconfirm
-    cd ..
-    rm -rf yay
-  }
+# Проверка наличия sudo
+if ! command -v sudo &> /dev/null; then
+  echo "sudo не установлен, установите его." >&2
+  exit 1
+fi
+
+# Установка yay из AUR вручую если не найден
+if ! command -v yay &> /dev/null; then
+  echo "yay не найден — собираю из AUR..."
+  cd /tmp
+  [ -d yay ] && rm -rf yay
+  git clone https://aur.archlinux.org/yay.git
+  cd yay
+  makepkg -si --noconfirm
+  cd ..
+  rm -rf yay
+fi
 
 # Установка zapret, если его нет
-pacman -Q zapret-git &>/dev/null \
-  || yay -Sy --noconfirm zapret-git
+if ! pacman -Q zapret-git &> /dev/null; then
+  yay -Sy --noconfirm zapret-git
+fi
 
-# Конфиг zapret, можно править NFQWS_OPT= " " согласно https://github.com/bol-van/zapret
-echo 'FWTYPE=nftables
+# Конфиг zapret
+cat << EOF | sudo tee /opt/zapret/config > /dev/null
+FWTYPE=nftables
 SET_MAXELEM=522288
-IPSET_OPT="hashsize 262144 maxelem $SET_MAXELEM"
+IPSET_OPT="hashsize 262144 maxelem \$SET_MAXELEM"
 IP2NET_OPT4="--prefix-length=22-30 --v4-threshold=3/4"
 IP2NET_OPT6="--prefix-length=56-64 --v6-threshold=5"
 AUTOHOSTLIST_RETRANS_THRESHOLD=3
@@ -55,30 +57,29 @@ TPWS_OPT="
 --filter-tcp=80 --methodeol <HOSTLIST> --new
 --filter-tcp=443 --split-tls=sni --disorder <HOSTLIST>
 "
+
 NFQWS_ENABLE=1
-NFQWS_PORTS_TCP=80,443,50000-50099
+NFQWS_PORTS_TCP=80,443
 NFQWS_PORTS_UDP=443,50000-65535
-NFQWS_TCP_PKT_OUT=$((6+$AUTOHOSTLIST_RETRANS_THRESHOLD))
+NFQWS_TCP_PKT_OUT=\$((6+\$AUTOHOSTLIST_RETRANS_THRESHOLD))
 NFQWS_TCP_PKT_IN=3
-NFQWS_UDP_PKT_OUT=$((6+$AUTOHOSTLIST_RETRANS_THRESHOLD))
+NFQWS_UDP_PKT_OUT=\$((6+\$AUTOHOSTLIST_RETRANS_THRESHOLD))
 NFQWS_UDP_PKT_IN=0
-
 NFQWS_OPT="
---filter-tcp=80,443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1 --dpi-desync-ttl=4 --dpi-desync-fake-tls=0x00000000 --dpi-desync-fake-tls=! --dpi-desync-fake-tls-mod=rnd,rndsni --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt" --new ^
---filter-udp=80,443  --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1 --dpi-desync-ttl=4 --dpi-desync-fake-tls=0x00000000 --dpi-desync-fake-tls=! --dpi-desync-fake-tls-mod=rnd,rndsni,dupsid --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt" --new ^
---filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt""
-
-MODE_FILTER=autohostlist
-FLOWOFFLOAD=donttouch
+--filter-udp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="/opt/zapret/files/fake/quic_initial_www_google_com.bin" --new \
+--filter-udp=50000-65535 --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-cutoff=d3 --dpi-desync-repeats=6 --new \
+--filter-tcp=80 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new \
+--filter-tcp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,split --dpi-desync-autottl=2 --dpi-desync-repeats=6 --dpi-desync-fooling=badseq --dpi-desync-fake-tls="/opt/zapret/files/fake/tls_clienthello_www_google_com.bin"
+"
+MODE_FILTER=hostlist
+FLOWOFFLOAD=auto
 INIT_APPLY_FW=1
 DISABLE_IPV6=1
+EOF
 
-
-' \
-  | sudo tee /opt/zapret/config > /dev/null
-
-#Настройка доменов, можно править
-echo 'youtube.com
+# Настройка доменов
+cat << EOF | sudo tee /opt/zapret/ipset/zapret-hosts-user.txt > /dev/null
+youtube.com
 googlevideo.com
 google.com
 ggpht.com
@@ -132,15 +133,15 @@ discordstatus.com
 discord.media
 dis.gd
 discord-attachments-uploads-prd.storage.googleapis.com
-' \
-  | sudo tee /opt/zapret/ipset/zapret-hosts-user.txt > /dev/null
+EOF
+
 # Включение и запуск сервиса zapret
 sudo systemctl enable --now zapret
 
 echo "zapret успешно установлен, сервис запущен для работы с пользовательским листом доменов"
 echo "Правило из скрипта может не работать у вас, работа не гарантируется, изучайте документацию для настройки своего провайдера"
 echo "Настройки можно изменить в /opt/zapret/config"
-echo "Документация для настройки своего конфига https://github.com/bol-van/zapret"
+echo "Документация для настройки своего конфига github.com/bol-van/zapret"
 echo "Настройку доменов можно производить в /opt/zapret/ipset/zapret-hosts-user.txt"
 echo "sudo systemctl restart zapret для перезапуска"
 echo "sudo systemctl start zapret для запуска"
