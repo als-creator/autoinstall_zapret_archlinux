@@ -73,6 +73,7 @@ FLOWOFFLOAD=donttouch
 INIT_APPLY_FW=1
 DISABLE_IPV6=1
 
+
 ' \
   | sudo tee /opt/zapret/config > /dev/null
 
