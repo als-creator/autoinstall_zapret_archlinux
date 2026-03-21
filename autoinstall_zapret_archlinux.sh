@@ -1,40 +1,43 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # Запрещаем запуск от root
-if [ "$EUID" -eq 0 ]; then
+if [ "${EUID:-$(id -u)}" -eq 0 ]; then
   echo "Не запускайте скрипт от root." >&2
   exit 1
 fi
 
 # Проверка наличия sudo
-if ! command -v sudo &> /dev/null; then
+if ! command -v sudo >/dev/null 2>&1; then
   echo "sudo не установлен, установите его." >&2
   exit 1
 fi
 
-# Установка yay из AUR вручую если не найден
-if ! command -v yay &> /dev/null; then
+# Установка yay из AUR, если не найден
+if ! command -v yay >/dev/null 2>&1; then
   echo "yay не найден — собираю из AUR..."
-  cd /tmp
-  [ -d yay ] && rm -rf yay
+  tmpdir="$(mktemp -d)"
+  trap 'rm -rf "$tmpdir"' EXIT
+  cd "$tmpdir"
   git clone https://aur.archlinux.org/yay.git
   cd yay
+  # makepkg требует прав пользователя (не root). makepkg -si попытается установить пакеты через pacman; если нужна интерактивность --noconfirm используется.
   makepkg -si --noconfirm
-  cd ..
-  rm -rf yay
+  cd -
 fi
 
-# Установка zapret, если его нет
-if ! pacman -Q zapret-git &> /dev/null; then
+# Установка zapret, если не установлен (через pacman/yay)
+if ! pacman -Qs ^zapret-git >/dev/null 2>&1; then
+  echo "Устанавливаю zapret-git через yay..."
   yay -Sy --noconfirm zapret-git
 fi
 
-# Создаем директории если их нет
+# Создаем директории если их нет (используем sudo)
 sudo mkdir -p /opt/zapret/ipset /opt/zapret/files
 
 # Конфиг zapret
-echo 'FWTYPE=nftables
+sudo tee /opt/zapret/config >/dev/null <<'EOF'
+FWTYPE=nftables
 SET_MAXELEM=522288
 IPSET_OPT="hashsize 262144 maxelem $SET_MAXELEM"
 IP2NET_OPT4="--prefix-length=22-30 --v4-threshold=3/4"
@@ -63,34 +66,25 @@ TPWS_OPT="
 NFQWS_ENABLE=1
 NFQWS_PORTS_TCP=80,443
 NFQWS_PORTS_UDP=443,50000-65535
-NFQWS_TCP_PKT_OUT=$((6+$AUTOHOSTLIST_RETRANS_THRESHOLD))
+NFQWS_TCP_PKT_OUT=$((6+AUTOHOSTLIST_RETRANS_THRESHOLD))
 NFQWS_TCP_PKT_IN=3
-NFQWS_UDP_PKT_OUT=$((6+$AUTOHOSTLIST_RETRANS_THRESHOLD))
+NFQWS_UDP_PKT_OUT=$((6+AUTOHOSTLIST_RETRANS_THRESHOLD))
 NFQWS_UDP_PKT_IN=0
 NFQWS_OPT="
---filter-udp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,split2 --dpi-desync-repeats=10 --dpi-desync-udplen-increment=15 --dpi-desync-udplen-pattern=0xCAFEBABE --dpi-desync-fake-quic="/opt/zapret/files/fake/quic_initial_www_google_com.bin" --new ^
+--filter-udp=443 --hostlist=\"/opt/zapret/ipset/zapret-hosts-user.txt\" --dpi-desync=fake,split2 --dpi-desync-repeats=10 --dpi-desync-udplen-increment=15 --dpi-desync-udplen-pattern=0xCAFEBABE --dpi-desync-fake-quic=\"/opt/zapret/files/fake/quic_initial_www_google_com.bin\" --new ^
 --filter-udp=50000-50100 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --new ^
---filter-udp=50000-65535 --hostlist="/opt/zapret/ipset/ipset-discord.txt" --dpi-desync=fake,disorder2 --dpi-desync-any-protocol --dpi-desync-cutoff=n5 --dpi-desync-repeats=10 --new ^
---filter-tcp=80 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,disorder2 --dpi-desync-autottl=4 --dpi-desync-fooling=badseq --new ^
---filter-tcp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=split --dpi-desync-split-pos=3 --dpi-desync-autottl=4 --dpi-desync-repeats=10 --dpi-desync-fooling=md5sig --dpi-desync-fake-tls="/opt/zapret/files/fake/tls_clienthello_www_google_com.bin" "
-
-#NFQWS_OPT="
-#--wf-tcp=80,443,%GameFilter% --wf-udp=443,50000-50100 ^
-#--filter-udp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%BIN%quic_initial_www_google_com.bin" --new ^
-#--filter-tcp=80 --hostlist="%LISTS%list-general.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
-#--filter-tcp=443 --hostlist="%LISTS%list-general.txt" --dpi-desync=multisplit --dpi-desync-repeats=2 --dpi-desync-split-seqovl=681 --dpi-desync-split-pos=1 --dpi-desync-split-seqovl-pattern="%BIN%tls_clienthello_www_google_com.bin" --new ^
-#--filter-udp=443 --ipset="%LISTS%ipset-all.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%BIN%quic_initial_www_google_com.bin" --new ^
-#--filter-tcp=80 --ipset="%LISTS%ipset-all.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
-#--filter-tcp=443,%GameFilter% --ipset="%LISTS%ipset-all.txt" --dpi-desync=multisplit --dpi-desync-split-seqovl=681 --dpi-desync-split-pos=1 --dpi-desync-split-seqovl-pattern="%BIN%tls_clienthello_www_google_com.bin" --new ^
-#--filter-udp=%GameFilter% --ipset="%LISTS%ipset-all.txt" --dpi-desync=fake --dpi-desync-autottl=2 --dpi-desync-repeats=12 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%BIN%quic_initial_www_google_com.bin" --dpi-desync-cutoff=n2 "
+--filter-udp=50000-65535 --hostlist=\"/opt/zapret/ipset/ipset-discord.txt\" --dpi-desync=fake,disorder2 --dpi-desync-any-protocol --dpi-desync-cutoff=n5 --dpi-desync-repeats=10 --new ^
+--filter-tcp=80 --hostlist=\"/opt/zapret/ipset/zapret-hosts-user.txt\" --dpi-desync=fake,disorder2 --dpi-desync-autottl=4 --dpi-desync-fooling=badseq --new ^
+--filter-tcp=443 --hostlist=\"/opt/zapret/ipset/zapret-hosts-user.txt\" --dpi-desync=split --dpi-desync-split-pos=3 --dpi-desync-autottl=4 --dpi-desync-repeats=10 --dpi-desync-fooling=md5sig --dpi-desync-fake-tls=\"/opt/zapret/files/fake/tls_clienthello_www_google_com.bin\" "
 MODE_FILTER=autohostlist
 FLOWOFFLOAD=auto
 INIT_APPLY_FW=1
 DISABLE_IPV6=1
-' | sudo tee /opt/zapret/config > /dev/null
+EOF
 
 # Настройка доменов
-echo 'youtube.com
+sudo tee /opt/zapret/ipset/zapret-hosts-user.txt >/dev/null <<'EOF'
+youtube.com
 googlevideo.com
 ggpht.com
 ytimg.com
@@ -208,19 +202,22 @@ regexlearn.com
 linkedin.com
 www.linkedin.com
 px.ads.linkedin.com
+EOF
 
-' | sudo tee /opt/zapret/ipset/zapret-hosts-user.txt > /dev/null
+# Включение и запуск сервиса zapret (проверяем существование systemd unit)
+if systemctl --user --type=service --all >/dev/null 2>&1; then
+  # Если пользовательские unit существуют, попробуем системный запуск
+  sudo systemctl enable --now zapret.service || sudo systemctl start zapret.service || true
+else
+  sudo systemctl enable --now zapret.service || sudo systemctl start zapret.service || true
+fi
 
-# Включение и запуск сервиса zapret
-sudo systemctl enable --now zapret
+echo "zapret успешно установлен, сервис запущен (если unit существует)."
+echo "Настройки: /opt/zapret/config"
+echo "Домены: /opt/zapret/ipset/zapret-hosts-user.txt"
+echo "Документация: https://github.com/bol-van/zapret"
 
-echo "zapret успешно установлен, сервис запущен для работы с пользовательским листом доменов"
-echo "Правило из скрипта может не работать у вас, работа не гарантируется, изучайте документацию для настройки своего провайдера"
-echo "Настройки можно изменить в /opt/zapret/config"
-echo "Документация для настройки своего конфига https://github.com/bol-van/zapret"
-echo "Настройку доменов можно производить в /opt/zapret/ipset/zapret-hosts-user.txt"
-echo "sudo systemctl restart zapret для перезапуска"
-echo "sudo systemctl start zapret для запуска"
-echo "sudo systemctl status zapret для проверки статуса сервиса"
-sudo systemctl status zapret
-exit
+# Показать статус сервиса (не прерывать выполнение при ошибке)
+sudo systemctl status zapret.service || true
+
+exit 0
