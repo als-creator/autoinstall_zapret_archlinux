@@ -30,11 +30,13 @@ if ! pacman -Q zapret-git &> /dev/null; then
   yay -Sy --noconfirm zapret-git
 fi
 
+# Создаем директории если их нет
+sudo mkdir -p /opt/zapret/ipset /opt/zapret/files
+
 # Конфиг zapret
-cat << EOF | sudo tee /opt/zapret/config > /dev/null
-FWTYPE=nftables
+echo 'FWTYPE=nftables
 SET_MAXELEM=522288
-IPSET_OPT="hashsize 262144 maxelem \$SET_MAXELEM"
+IPSET_OPT="hashsize 262144 maxelem $SET_MAXELEM"
 IP2NET_OPT4="--prefix-length=22-30 --v4-threshold=3/4"
 IP2NET_OPT6="--prefix-length=56-64 --v6-threshold=5"
 AUTOHOSTLIST_RETRANS_THRESHOLD=3
@@ -61,27 +63,35 @@ TPWS_OPT="
 NFQWS_ENABLE=1
 NFQWS_PORTS_TCP=80,443
 NFQWS_PORTS_UDP=443,50000-65535
-NFQWS_TCP_PKT_OUT=\$((6+\$AUTOHOSTLIST_RETRANS_THRESHOLD))
+NFQWS_TCP_PKT_OUT=$((6+$AUTOHOSTLIST_RETRANS_THRESHOLD))
 NFQWS_TCP_PKT_IN=3
-NFQWS_UDP_PKT_OUT=\$((6+\$AUTOHOSTLIST_RETRANS_THRESHOLD))
+NFQWS_UDP_PKT_OUT=$((6+$AUTOHOSTLIST_RETRANS_THRESHOLD))
 NFQWS_UDP_PKT_IN=0
 NFQWS_OPT="
---filter-udp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="/opt/zapret/files/fake/quic_initial_www_google_com.bin" --new \
---filter-udp=50000-65535 --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-cutoff=d3 --dpi-desync-repeats=6 --new \
---filter-tcp=80 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new \
---filter-tcp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,split --dpi-desync-autottl=2 --dpi-desync-repeats=6 --dpi-desync-fooling=badseq --dpi-desync-fake-tls="/opt/zapret/files/fake/tls_clienthello_www_google_com.bin"
-"
-MODE_FILTER=hostlist
+--filter-udp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,split2 --dpi-desync-repeats=10 --dpi-desync-udplen-increment=15 --dpi-desync-udplen-pattern=0xCAFEBABE --dpi-desync-fake-quic="/opt/zapret/files/fake/quic_initial_www_google_com.bin" --new ^
+--filter-udp=50000-50100 --filter-l7=discord,stun --dpi-desync=fake --dpi-desync-repeats=6 --new ^
+--filter-udp=50000-65535 --hostlist="/opt/zapret/ipset/ipset-discord.txt" --dpi-desync=fake,disorder2 --dpi-desync-any-protocol --dpi-desync-cutoff=n5 --dpi-desync-repeats=10 --new ^
+--filter-tcp=80 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,disorder2 --dpi-desync-autottl=4 --dpi-desync-fooling=badseq --new ^
+--filter-tcp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=split --dpi-desync-split-pos=3 --dpi-desync-autottl=4 --dpi-desync-repeats=10 --dpi-desync-fooling=md5sig --dpi-desync-fake-tls="/opt/zapret/files/fake/tls_clienthello_www_google_com.bin" "
+
+#NFQWS_OPT="
+#--wf-tcp=80,443,%GameFilter% --wf-udp=443,50000-50100 ^
+#--filter-udp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%BIN%quic_initial_www_google_com.bin" --new ^
+#--filter-tcp=80 --hostlist="%LISTS%list-general.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
+#--filter-tcp=443 --hostlist="%LISTS%list-general.txt" --dpi-desync=multisplit --dpi-desync-repeats=2 --dpi-desync-split-seqovl=681 --dpi-desync-split-pos=1 --dpi-desync-split-seqovl-pattern="%BIN%tls_clienthello_www_google_com.bin" --new ^
+#--filter-udp=443 --ipset="%LISTS%ipset-all.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="%BIN%quic_initial_www_google_com.bin" --new ^
+#--filter-tcp=80 --ipset="%LISTS%ipset-all.txt" --dpi-desync=fake,multisplit --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --new ^
+#--filter-tcp=443,%GameFilter% --ipset="%LISTS%ipset-all.txt" --dpi-desync=multisplit --dpi-desync-split-seqovl=681 --dpi-desync-split-pos=1 --dpi-desync-split-seqovl-pattern="%BIN%tls_clienthello_www_google_com.bin" --new ^
+#--filter-udp=%GameFilter% --ipset="%LISTS%ipset-all.txt" --dpi-desync=fake --dpi-desync-autottl=2 --dpi-desync-repeats=12 --dpi-desync-any-protocol=1 --dpi-desync-fake-unknown-udp="%BIN%quic_initial_www_google_com.bin" --dpi-desync-cutoff=n2 "
+MODE_FILTER=autohostlist
 FLOWOFFLOAD=auto
 INIT_APPLY_FW=1
 DISABLE_IPV6=1
-EOF
+' | sudo tee /opt/zapret/config > /dev/null
 
 # Настройка доменов
-cat << EOF | sudo tee /opt/zapret/ipset/zapret-hosts-user.txt > /dev/null
-youtube.com
+echo 'youtube.com
 googlevideo.com
-google.com
 ggpht.com
 ytimg.com
 yt.be
@@ -114,6 +124,10 @@ fbcdn.net
 www.fbcdn.net
 fburl.com
 fbsbx.com
+twitter.com
+twimg.com
+t.co
+x.com
 rutor.info
 rutor.is
 nnmclub.to
@@ -133,7 +147,69 @@ discordstatus.com
 discord.media
 dis.gd
 discord-attachments-uploads-prd.storage.googleapis.com
-EOF
+cloudflare-ech.com
+cloudflare.com
+1.1.1.1
+amazon.com
+amazonaws.com
+sms-activate.guru
+onlinesim.io
+ntc.party
+cryptpad.fr
+bbc.com
+proton.me
+protonvpn.com
+tuta.com
+prostovpn.org
+torproject.org
+mullvad.net
+psiphon.ca
+z-lib.io
+singlelogin.cc
+lordfilms.day
+hd2.lordfilm-ru.net
+lordfilm.llc
+archive.org
+web.archive.org
+soundcloud.com
+novayagazeta.eu
+meduza.io
+holod.media
+moscowtimes.ru
+roskomsvoboda.org
+te-st.org
+dept.one
+idelreal.org
+rferl.org
+krymr.com
+indigogobot.com
+glaznews.com
+bellingcat.com
+cdn.hsmedia.ru
+static.doubleclick.net
+cdn.vigo.one
+republic.ru
+viber.com
+signal.org
+hrw.org
+animego.org
+escapefromtarkov.com
+quora.com
+rumble.com
+wixmp.com
+gifer.com
+save4k.top
+coursera.org
+udemy.com
+znanija.com
+basis.gnulinux.pro
+infra.gnulinux.pro
+regexlearn.com
+linkedin.com
+www.linkedin.com
+px.ads.linkedin.com
+
+' | sudo tee /opt/zapret/ipset/zapret-hosts-user.txt > /dev/null
 
 # Включение и запуск сервиса zapret
 sudo systemctl enable --now zapret
@@ -141,9 +217,10 @@ sudo systemctl enable --now zapret
 echo "zapret успешно установлен, сервис запущен для работы с пользовательским листом доменов"
 echo "Правило из скрипта может не работать у вас, работа не гарантируется, изучайте документацию для настройки своего провайдера"
 echo "Настройки можно изменить в /opt/zapret/config"
-echo "Документация для настройки своего конфига github.com/bol-van/zapret"
+echo "Документация для настройки своего конфига https://github.com/bol-van/zapret"
 echo "Настройку доменов можно производить в /opt/zapret/ipset/zapret-hosts-user.txt"
 echo "sudo systemctl restart zapret для перезапуска"
 echo "sudo systemctl start zapret для запуска"
 echo "sudo systemctl status zapret для проверки статуса сервиса"
 sudo systemctl status zapret
+exit
