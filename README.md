@@ -1,3 +1,4 @@
+
 # 🛡 Скрипт для автоматической установки и настройки Zapret
 
 Этот скрипт автоматизирует процесс установки и базовой настройки утилиты zapret, предназначен только для Arch Linux и его производных, использующих pacman или yay.
@@ -109,49 +110,7 @@ sudo systemctl restart zapret.service
 Если zapret больше не требуется, выполните следующие команды:
 
 ```bash
-su -c '
-  if systemctl list-unit-files | grep -q "zapret.service"; then
-    systemctl disable --now zapret.service
-    rm /etc/systemd/system/zapret.service
-    systemctl daemon-reload
-  fi
-  rm -rf /opt/zapret
-  if dpkg -l | grep -q "libnetfilter_queue"; then
-    apt-get remove -y libnetfilter_queue
-  fi
-'
-```
-
-То же самое в несколько команд:
-
-Отключение автозагрузки:
-
-```bash
-sudo systemctl disable --now zapret.service
-```
-
-Удаление systemd unit:
-
-```bash
-sudo rm /etc/systemd/system/zapret.service
-```
-
-Перезагрузка systemd:
-
-```bash
-sudo systemctl daemon-reload
-```
-
-Удаление файлов zapret:
-
-```bash
-sudo rm -rf /opt/zapret
-```
-
-Удаление зависимостей (опционально):
-
-```bash
-sudo apt-get remove libnetfilter_queue
+sudo pacman -Rsn --noconfirm
 ```
 
 ## Проверка зависимостей
@@ -161,9 +120,6 @@ sudo -v
 
 Проверка наличия git:  
 git --version
-
-Проверка наличия libnetfilter_queue:  
-dpkg -l | grep libnetfilter
 
 ## Решение проблем
 
