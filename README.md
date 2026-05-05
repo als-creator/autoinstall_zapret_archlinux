@@ -1,34 +1,41 @@
 # 🛡 Скрипт для автоматической установки и настройки Zapret
 
-Этот скрипт автоматизирует процесс установки и базовой настройки утилиты zapret. Он создан для пользователей Arch Linux и его производных, использующих pacman и yay.
+Этот скрипт автоматизирует процесс установки и базовой настройки утилиты zapret, предназначен только для Arch Linux и его производных, использующих pacman или yay.
+
+## Автоматическая установка
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/als-creator/autoinstall_zapret_archlinux/main/autoinstall_zapret_archlinux.sh | sh
+
+```
 
 <details>
   <summary>Ориентировочно поддерживаемые дистры, проверялось на EndeavourOS и ArchLinux</summary>
 
-- ArcoLinux  
-- Arch Linux  
-- Carli  
-- Alci  
-- Ariser  
-- EndeavourOS  
-- Garuda  
-- Manjaro  
-- RebornOS  
-- Archcraft  
-- CachyOS  
-- Archman  
-- Biglinux  
-- Artix  
-- ParchLinux  
-- StormOS  
-- Mabox  
-- ArchBang  
-- Crystal Linux  
-- Liya  
-- Bluestar Linux  
-- Calam-Arch-Installer  
+- ArcoLinux
+- Arch Linux
+- Carli
+- Alci
+- Ariser
+- EndeavourOS
+- Garuda
+- Manjaro
+- RebornOS
+- Archcraft
+- CachyOS
+- Archman
+- Biglinux
+- Artix
+- ParchLinux
+- StormOS
+- Mabox
+- ArchBang
+- Crystal Linux
+- Liya
+- Bluestar Linux
+- Calam-Arch-Installer
 
-_Скрипт ориентирован на скачивание из репозитория ArchLinux пакета zapret-git через yay и установку готовых конфигов для моего провайдера. Если репозитории ArchLinux не менялись, проблем быть не должно. Для других дистров можно форкнуть и адаптировать под свой пакетный менеджер, предварительно проверив пути установки и конфиги._
+_Скрипт ориентирован на скачивание из репозитория ArchLinux пакета zapret-git через yay и установку готовых конфигов для yota, остальнгые провайдеры не проверялись. Если репозитории ArchLinux не менялись, проблем быть не должно. Для других дистров можно форкнуть и адаптировать под свой пакетный менеджер, предварительно проверив пути установки и конфиги._
 
 </details>
 
@@ -47,56 +54,130 @@ _Скрипт ориентирован на скачивание из репоз
 
 ---
 
-## 🛠 Как редактировать настройки
+════════════════════════════════════════════════════════════════════
+УПРАВЛЕНИЕ СЕРВИСОМ  
+════════════════════════════════════════════════════════════════════
 
-Скрипт создает два основных файла, которые вы можете редактировать вручную для тонкой настройки zapret.
+Запуск сервиса:  
+ sudo systemctl start zapret.service
 
-### 1. Файл конфигурации: `/opt/zapret/config`
+Остановка сервиса:  
+ sudo systemctl stop zapret.service
 
-Этот файл содержит основные параметры работы zapret, такие как тип фаервола, опции и порты.
+Перезагрузка сервиса:  
+ sudo systemctl restart zapret.service
 
-Для редактирования используйте текстовый редактор с правами sudo:
+Проверка статуса:  
+ sudo systemctl status zapret.service
 
-sudo nano /opt/zapret/config
+Просмотр логов:  
+ sudo journalctl -u zapret.service -f
 
-> **Важная заметка:** В конфигурации уже установлены параметры для NFQWS (`NFQWS_ENABLE=1`), которые являются наиболее эффективными для большинства провайдеров.  
-> Не гарантируется, что эти настройки будут работать у вас, так как методы работы провайдеров могут отличаться.  
-> Изучите документацию [zapret](https://github.com/bol-van/zapret) для получения информации о настройке под вашего провайдера, телепаты в отпуске.
+Отключение автозагрузки:  
+ sudo systemctl disable zapret.service
 
-### 2. Список доменов: `/opt/zapret/ipset/zapret-hosts-user.txt`
+Включение автозагрузки:  
+ sudo systemctl enable zapret.service
 
-В этот файл вы можете добавить или удалить домены для обработки.
+════════════════════════════════════════════════════════════════════
+КОНФИГУРАЦИЯ ZAPRET  
+════════════════════════════════════════════════════════════════════
 
-Для редактирования используйте текстовый редактор с правами sudo:
+Основной конфиг:  
+ /opt/zapret/config  
+ Редактирование: sudo nano /opt/zapret/config
 
-sudo nano /opt/zapret/ipset/zapret-hosts-user.txt
+Основные параметры:  
+ • MODE - режим работы (NFQUEUE, TPWS, TPWS+, FAKE, etc)  
+ • TPWS_PORT - порт для TPWS  
+ • IPSET - набор IP адресов для обработки
 
-Каждый домен должен находиться на новой строке.
+Список доменов для блокировки:  
+ /opt/zapret/ipset/zapret-hosts-user.txt  
+ Редактирование: sudo nano /opt/zapret/ipset/zapret-hosts-user.txt
 
----
+Формат: один домен на строку  
+ Пример:  
+ example.com  
+ blocked.site  
+ forbidden.net
 
-## 🔄 Управление сервисом
+sudo systemctl restart zapret.service
 
-После внесения изменений в файлы конфигурации, вам нужно перезапустить сервис zapret, чтобы они вступили в силу.
+## Удаление zapret
 
-- Перезапуск сервиса:
+Если zapret больше не требуется, выполните следующие команды:
 
-sudo systemctl restart zapret
-
-- Проверка статуса сервиса:
-
-sudo systemctl status zapret
-
-- Остановка сервиса:
-
-sudo systemctl stop zapret
-
----
-
-## Автоматическая установка
 ```bash
-curl -fsSL https://raw.githubusercontent.com/als-creator/autoinstall_zapret_archlinux/main/autoinstall_zapret_archlinux.sh | sh
-
+su -c '
+  if systemctl list-unit-files | grep -q "zapret.service"; then
+    systemctl disable --now zapret.service
+    rm /etc/systemd/system/zapret.service
+    systemctl daemon-reload
+  fi
+  rm -rf /opt/zapret
+  if dpkg -l | grep -q "libnetfilter_queue"; then
+    apt-get remove -y libnetfilter_queue
+  fi
+'
 ```
----
+
+То же самое в несколько команд:
+
+Отключение автозагрузки:
+
+```bash
+sudo systemctl disable --now zapret.service
+```
+
+Удаление systemd unit:
+
+```bash
+sudo rm /etc/systemd/system/zapret.service
+```
+
+Перезагрузка systemd:
+
+```bash
+sudo systemctl daemon-reload
+```
+
+Удаление файлов zapret:
+
+```bash
+sudo rm -rf /opt/zapret
+```
+
+Удаление зависимостей (опционально):
+
+```bash
+sudo apt-get remove libnetfilter_queue
+```
+
+## Проверка зависимостей
+
+Проверка наличия sudo:  
+sudo -v
+
+Проверка наличия git:  
+git --version
+
+Проверка наличия libnetfilter_queue:  
+dpkg -l | grep libnetfilter
+
+## Решение проблем
+
+Если сервис не запускается, проверьте логи:  
+sudo journalctl -u zapret.service -n 50
+
+Если конфиг невалиден, проверьте синтаксис:  
+cat /opt/zapret/config
+
 [Наборы хостов и правил для перебора под своего провайдера](https://github.com/Snowy-Fluffy/zapret.cfgs)
+
+Если доступа нет, проверьте права доступа:  
+ls -la /opt/zapret/
+
+## Лицензия
+
+Используется лицензия из оригинального репозитория zapret.
