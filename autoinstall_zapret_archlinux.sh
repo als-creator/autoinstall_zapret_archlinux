@@ -60,7 +60,7 @@ sudo tee /opt/zapret/config >/dev/null <<'EOF'
 #WS_USER=nobody
 
 # override firewall type : iptables,nftables,ipfw
-FWTYPE=nftables
+FWTYPE=iptables
 # nftables only : set this to 0 to use pre-nat mode. default is post-nat.
 # pre-nat mode disables some bypass techniques for forwarded traffic but allows to see client IP addresses in debug log
 #POSTNAT=0
@@ -122,7 +122,7 @@ TPWS_OPT="
 
 NFQWS_ENABLE=1
 # redirect outgoing traffic with connbytes limiter applied in both directions.
-NFQWS_PORTS_TCP=80,443,50000-50099
+NFQWS_PORTS_TCP=80,443
 NFQWS_PORTS_UDP=443,50000-65535
 # PKT_OUT means connbytes dir original
 # PKT_IN means connbytes dir reply
@@ -141,16 +141,14 @@ NFQWS_UDP_PKT_IN=0
 # hostlist markers are replaced to empty string if MODE_FILTER does not satisfy
 # <HOSTLIST_NOAUTO> appends ipset/zapret-hosts-auto.txt as normal list
 NFQWS_OPT="
---filter-tcp=80,443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1 --dpi-desync-ttl=4 --dpi-desync-fake-tls=0x00000000 --dpi-desync-fake-tls=! --dpi-desync-fake-tls-mod=rnd,rndsni --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt" --new ^
---filter-udp=80,443  --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,multidisorder --dpi-desync-split-pos=1,sniext+1,host+1,midsld-2,midsld,midsld+2,endhost-1 --dpi-desync-ttl=4 --dpi-desync-fake-tls=0x00000000 --dpi-desync-fake-tls=! --dpi-desync-fake-tls-mod=rnd,rndsni,dupsid --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt" --new ^
---filter-udp=50000-50099 --filter-l7=discord,stun --dpi-desync=fake --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt""
-
-
+--filter-udp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="/opt/zapret/files/fake/quic_initial_www_google_com.bin" --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt" --new ^
+--filter-udp=50000-65535  --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-cutoff=d3 --dpi-desync-repeats=6 --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt" --new ^
+--filter-tcp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,split --dpi-desync-autottl=2 --dpi-desync-repeats=6 --dpi-desync-fooling=badseq --dpi-desync-fake-tls="/opt/zapret/files/fake/tls_clienthello_www_google_com.bin" --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt""
 # none,ipset,hostlist,autohostlist
-MODE_FILTER=hostlist
+MODE_FILTER=autohostlist
 
 # openwrt only : donttouch,none,software,hardware
-FLOWOFFLOAD=none
+FLOWOFFLOAD=donttouch
 
 # openwrt: specify networks to be treated as LAN. default is "lan"
 #OPENWRT_LAN="lan lan2 lan3"
@@ -163,7 +161,7 @@ FLOWOFFLOAD=none
 # or leave them commented if its not router
 # it's possible to specify multiple interfaces like this : IFACE_LAN="eth0 eth1 eth2"
 # if IFACE_WAN6 is not defined it take the value of IFACE_WAN
-IFACE_LAN=enp37s0
+#IFACE_LAN=
 #IFACE_WAN=
 #IFACE_WAN6="ipsec0 wireguard0 he_net"
 
@@ -184,7 +182,7 @@ DISABLE_IPV6=1
 # select which init script will be used to get ip or host list
 # possible values : get_user.sh get_antizapret.sh get_combined.sh get_reestr.sh get_hostlist.sh
 # comment if not required
-GETLIST=get_refilter_domains.sh
+#GETLIST=
 EOF
 
 sudo tee /opt/zapret/ipset/zapret-hosts-user.txt >/dev/null <<'EOF'
