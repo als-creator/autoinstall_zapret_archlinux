@@ -121,6 +121,21 @@ sudo -v
 Проверка наличия git:  
 git --version
 
+## Минимальный набор доменов
+
+После установки выводится проверка минимума — rutor, rutracker, nnm-club,
+YouTube, Telegram:
+
+```bash
+for h in rutracker.org nnmclub.to www.youtube.com i.ytimg.com yt3.googleusercontent.com rutor.info telegram.org t.me web.telegram.org; do
+  printf '%-30s %s\n' "$h" "$(curl -k -sS -m 8 -o /dev/null -w '%{http_code}' https://$h/ 2>/dev/null)"
+done
+```
+
+Домен, который есть в `/opt/zapret/ipset/zapret-hosts-user.txt`, но не
+открывается, почти всегда заблокирован по IP (RST сразу после connect) —
+desync по SNI такие блокировки не снимает.
+
 ## Решение проблем
 
 Если сервис не запускается, проверьте логи:  
