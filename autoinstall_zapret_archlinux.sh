@@ -187,7 +187,7 @@ DISABLE_IPV6=1
 EOF
 
 sudo tee /opt/zapret/ipset/zapret-hosts-user.txt >/dev/null <<'EOF'
-# --- МИНИМУМ: rutor / rutracker / nnm-club / youtube / telegram ---
+# --- МИНИМУМ: rutor / rutracker / nnm-club / youtube ---
 # Rutor
 rutor.info
 rutor.is
@@ -219,17 +219,6 @@ accounts.google.com
 youtubekids.com
 fonts.googleapis.com
 googleads.g.doubleclick.net
-# Telegram
-telegram.org
-telegram.me
-telegram.dog
-t.me
-telegra.ph
-web.telegram.org
-web.telegram.me
-core.telegram.org
-desktop.telegram.org
-# CDN и служебные домены (проверено резолвом)
 # YouTube: apex-ы часто без A-записи, но нужны для матчинга поддоменов
 gstatic.com
 googleusercontent.com
@@ -237,16 +226,10 @@ l.google.com
 1e100.net
 m.youtube.com
 img.youtube.com
+yt3.googleusercontent.com
 yt3.ggpht.com
 yt4.ggpht.com
 youtube.ru
-# Telegram: клиенты и веб-приложения
-tdesktop.com
-telegramusercontent.com
-k.telegram.org
-webk.telegram.org
-telesco.pe
-# --- прочее ---
 youtube.com
 googlevideo.com
 ggpht.com
@@ -322,7 +305,7 @@ sudo systemctl enable --now zapret.service || sudo systemctl start zapret.servic
 # ---------------------------------------------------------------------------
 verify_min_domains(){
     command -v curl >/dev/null 2>&1 || { echo "curl не найден, пропускаю проверку"; return 0; }
-    min_domains="rutracker.org nnmclub.to www.youtube.com i.ytimg.com yt3.googleusercontent.com rutor.info telegram.org t.me web.telegram.org"
+    min_domains="rutracker.org nnmclub.to www.youtube.com i.ytimg.com yt3.googleusercontent.com rutor.info"
     echo
     echo "Минимальный набор доменов:"
     for h in $min_domains; do
