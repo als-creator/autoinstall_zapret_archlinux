@@ -124,17 +124,20 @@ git --version
 ## Минимальный набор доменов
 
 После установки выводится проверка минимума — rutor, rutracker, nnm-club,
-YouTube, Telegram:
+YouTube:
 
 ```bash
-for h in rutracker.org nnmclub.to www.youtube.com i.ytimg.com yt3.googleusercontent.com rutor.info telegram.org t.me web.telegram.org; do
+for h in rutracker.org nnmclub.to www.youtube.com i.ytimg.com yt3.googleusercontent.com rutor.info; do
   printf '%-30s %s\n' "$h" "$(curl -k -sS -m 8 -o /dev/null -w '%{http_code}' https://$h/ 2>/dev/null)"
 done
 ```
 
-Домен, который есть в `/opt/zapret/ipset/zapret-hosts-user.txt`, но не
-открывается, почти всегда заблокирован по IP (RST сразу после connect) —
-desync по SNI такие блокировки не снимает.
+rutor.info фильтруется статистически: SYN-ACK проходит (блокировки по IP нет),
+а RST прилетает на ClientHello примерно в 7 случаях из 8 при любом правиле
+desync — помогает перезагрузка или `--retry`.
+
+Telegram в списках нет: с 05.06.2026 он режет по JA3-отпечатку ClientHello,
+а не по SNI, поэтому desync его не берёт.
 
 ## Решение проблем
 
