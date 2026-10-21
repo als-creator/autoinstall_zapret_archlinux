@@ -352,6 +352,18 @@ ntc.party
 torproject.org
 meduza.io
 te-st.org
+# --- Заблокированные сервисы и медиа ---------------------------------------
+# Проверено: без desync не открываются (000), с zapret работают.
+signal.org
+www.signal.org
+svoboda.org
+www.svoboda.org
+currenttime.tv
+www.currenttime.tv
+novayagazeta.eu
+www.novayagazeta.eu
+ovdinfo.org
+www.ovdinfo.org
 EOF
 
 sudo systemctl enable --now zapret.service || sudo systemctl start zapret.service || true
@@ -394,7 +406,7 @@ setup_block_quic
 # ---------------------------------------------------------------------------
 verify_min_domains(){
     command -v curl >/dev/null 2>&1 || { echo "curl не найден, пропускаю проверку"; return 0; }
-    min_domains="rutracker.org nnmclub.to www.youtube.com i.ytimg.com yt3.googleusercontent.com rutor.info"
+    min_domains="rutracker.org nnmclub.to www.youtube.com i.ytimg.com yt3.googleusercontent.com discord.com"
     echo
     echo "Минимальный набор доменов:"
     for h in $min_domains; do
