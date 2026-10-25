@@ -49,3 +49,6 @@ src/
 .qodo
 managed_context
 test_suite_analysis
+
+# Тесты — только локально, в репозиторий не входят
+/tests/
