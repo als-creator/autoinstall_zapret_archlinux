@@ -190,9 +190,9 @@ NFQWS_UDP_PKT_IN=0
 # <HOSTLIST_NOAUTO> appends ipset/zapret-hosts-auto.txt as normal list
 NFQWS_OPT="
 --filter-udp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake --dpi-desync-repeats=6 --dpi-desync-fake-quic="/opt/zapret/files/fake/quic_initial_www_google_com.bin" --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt" --new ^
---filter-udp=50000-65535  --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-cutoff=d3 --dpi-desync-repeats=6 --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt" --new ^
---filter-tcp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,split --dpi-desync-autottl=2 --dpi-desync-repeats=6 --dpi-desync-fooling=badseq --dpi-desync-fake-tls="/opt/zapret/files/fake/tls_clienthello_www_google_com.bin" --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt" --new ^
---filter-tcp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=multisplit --dpi-desync-split-pos=1,midsld,sniext --dpi-desync-split-seqovl=1 --dpi-desync-fooling=badseq,md5sig --dpi-desync-repeats=6 --dpi-desync-autottl=2 --dpi-desync-fake-tls="/opt/zapret/files/fake/tls_clienthello_www_google_com.bin" --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt""
+--filter-udp=50000-65535 --dpi-desync=fake --dpi-desync-any-protocol --dpi-desync-cutoff=d3 --dpi-desync-repeats=6 --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt" --new ^
+--filter-tcp=80 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake,split2 --dpi-desync-autottl=2 --dpi-desync-fooling=md5sig --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt" --new ^
+--filter-tcp=443 --hostlist="/opt/zapret/ipset/zapret-hosts-user.txt" --dpi-desync=fake --dpi-desync-autottl=2 --dpi-desync-repeats=6 --dpi-desync-fooling=badseq --dpi-desync-fake-tls="/opt/zapret/files/fake/tls_clienthello_www_google_com.bin" --hostlist-exclude="/opt/zapret/ipset/zapret-hosts-user-exclude.txt""
 # none,ipset,hostlist,autohostlist
 MODE_FILTER=autohostlist
 
